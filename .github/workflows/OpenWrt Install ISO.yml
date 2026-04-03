@@ -1,4 +1,4 @@
-name: "OpenWrt Installer ISO"
+name: "OpenWrt Install ISO"
 
 on:
   workflow_dispatch:
@@ -49,5 +49,5 @@ jobs:
           tag_name: "OpenWrt-Installer-x86_64-ISO"
           body_path: "${{ github.workspace }}/supportFiles/custom/info.md"
           files: |
-            output/openwrt-installer-x86_64.iso
+            output/openwrt-install-x86_64.iso
           token: "${{ secrets.GITHUB_TOKEN }}"
