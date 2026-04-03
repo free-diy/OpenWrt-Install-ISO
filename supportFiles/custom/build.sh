@@ -113,6 +113,6 @@ xorriso \
     "${HOME}/LIVE_BOOT/staging"
 
 echo Copy output
-cp -v $HOME/LIVE_BOOT/debian-custom.iso /output/openwrt-install-x86_64.iso
-chmod -v 666 /output/openwrt-install-x86_64.iso
+cp -v $HOME/LIVE_BOOT/debian-custom.iso /output/openwrt-x86_64-install.iso
+chmod -v 666 /output/openwrt-x86_64-install.iso
 ls -lah /output
