@@ -12,6 +12,8 @@ jobs:
   build-release:
     name: "Build and Release"
     runs-on: "ubuntu-22.04"
+    permissions:
+      contents: write # 必须赋予写入权限才能删除和创建 Release
 
     steps:
       - name: "Checking out git repository"
@@ -42,6 +44,13 @@ jobs:
         run: |
           download_url="${{ github.event.inputs.download_url }}"
           ./custom.sh "$download_url"
+
+      # 在发布前清理同名 Release 和 Tag ---
+      - name: "Cleanup Existing Release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "OpenWrt-Install-ISO" --cleanup-tag -y || true    
 
       - name: "Publish"
         uses: softprops/action-gh-release@v2.2.1
