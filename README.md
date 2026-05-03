@@ -3,4 +3,4 @@
 2. 虚拟机使用：各种虚拟机启动直接选择iso即可
 3. 物理机使用：建议将iso放入ventoy的U盘中启动
 4. iso镜像启动后，命令行输入 ddd 命令，按提示操作
-5. 自定义openwrt镜像生成iso安装器,其中openwrt镜像的压缩包格式是`img.gz` `img.zip` `img.xz`三种
+5. 支持openwrt镜像（`img.gz` `img.zip` `img.xz`）生成ISO镜像
