@@ -62,7 +62,7 @@ jobs:
             output/openwrt-x86_64-install.iso
           token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: 14. 清理旧 Workflow 运行记录
+      - name: 清理旧 Workflow 运行记录
         if: always() && !cancelled()
         uses: ophub/delete-releases-workflows@main
         with:
