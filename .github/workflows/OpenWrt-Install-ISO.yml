@@ -11,14 +11,14 @@ on:
 jobs:
   build-release:
     name: "Build and Release"
-    runs-on: "ubuntu-22.04"
+    runs-on: "ubuntu-latest"
     permissions:
-      contents: write # 必须赋予写入权限才能删除和创建 Release
+      contents: write # 必须赋予写入权限才能创建和清理 Release
       actions: write  # 必须赋予此权限才能清理旧 Workflow 运行记录
 
     steps:
       - name: "Checking out git repository"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set executable permissions
         run: |
@@ -29,38 +29,59 @@ jobs:
         run: |
           DEFAULT_URL="https://default.example.com/file.img.gz"
           USER_INPUT_URL="${{ github.event.inputs.download_url }}"
-          
+
           if [[ "$USER_INPUT_URL" == "$DEFAULT_URL" ]]; then
             echo "❌ 错误：请修改默认下载地址！当前地址为无效占位符。"
             exit 1
           fi
-          
+
           if [[ ! "$USER_INPUT_URL" =~ ^https?://.+\.[gG][zZ]$|^https?://.+\.[xX][zZ]$|^https?://.+\.[zZ][iI][pP]$ ]]; then
             echo "❌ 错误：地址需以 http(s) 开头且扩展名为 .gz/.xz/.zip"
             echo "当前输入：$USER_INPUT_URL"
             exit 1
           fi
 
-      - name: "Build Image"
+      - name: "Build Image and Rename Output"
         run: |
+          set -e
           download_url="${{ github.event.inputs.download_url }}"
           ./custom.sh "$download_url"
 
-      # 在发布前清理同名 Release 和 Tag ---
-      - name: "Cleanup Existing Release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release delete "OpenWrt-Install-ISO" --cleanup-tag -y || true    
+          SRC_ISO="output/openwrt-x86_64-install.iso"
+          if [[ ! -f "$SRC_ISO" ]]; then
+            echo "❌ 错误：未找到输出文件 $SRC_ISO"
+            exit 1
+          fi
+
+          TIMESTAMP=$(TZ="Asia/Shanghai" date +"%Y%m%d-%H%M%S")
+          DST_ISO="output/openwrt-x86_64-install-${TIMESTAMP}.iso"
+          mv "$SRC_ISO" "$DST_ISO"
+
+          echo "RELEASE_TAG=iso-${TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "ISO_FILE_PATH=${DST_ISO}" >> "$GITHUB_ENV"
+          echo "✅ 已生成产物: ${DST_ISO}"
 
       - name: "Publish"
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: "OpenWrt-Install-ISO"
+          tag_name: "${{ env.RELEASE_TAG }}"
+          name: "OpenWrt Install ISO"
           body_path: "${{ github.workspace }}/supportFiles/custom/info.md"
           files: |
-            output/openwrt-x86_64-install.iso
+            ${{ env.ISO_FILE_PATH }}
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: "Keep Latest 3 Releases"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 获取所有 Release 的 tagName，跳过最新的 3 个，删除其余旧 Release 及其 Tag
+          gh release list --limit 100 --json tagName --jq '.[3:].[].tagName' | while IFS= read -r old_tag; do
+            if [[ -n "$old_tag" ]]; then
+              echo "🗑️ 删除旧 Release 及 Tag: $old_tag"
+              gh release delete "$old_tag" --cleanup-tag -y || true
+            fi
+          done
 
       - name: 清理旧 Workflow 运行记录
         if: always() && !cancelled()
